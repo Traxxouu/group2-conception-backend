@@ -1,3 +1,4 @@
+import { traceCommand } from '#/platform/observability/trace-command.ts'
 import { InMemoryEventRepository } from '#/features/events/infrastructure/repository/in-memory-event-repository.ts'
 import { OutboxDispatcher } from '#/features/events/application/outbox-dispatcher.ts'
 import type { MiddlewareHandler } from 'hono'
@@ -156,42 +157,52 @@ export function createContainer(options: ContainerOptions): Container {
       TOKEN.Identity,
       (c) => new DemoIdentity(c.resolve(TOKEN.EventRepository)),
     )
-    .singleton(
-      TOKEN.CreateEventUseCase,
-      (c) =>
-        new CreateEventUseCase(
-          c.resolve(TOKEN.EventsUnitOfWork),
-          c.resolve(TOKEN.Clock),
-          c.resolve(TOKEN.IdGenerator),
-        ),
-    )
-    .singleton(
-      TOKEN.UpdateEventUseCase,
-      (c) =>
-        new UpdateEventUseCase(
-          c.resolve(TOKEN.EventsUnitOfWork),
-          c.resolve(TOKEN.Clock),
-          c.resolve(TOKEN.IdGenerator),
-        ),
-    )
-    .singleton(
-      TOKEN.ReserveEventUseCase,
-      (c) =>
-        new ReserveEventUseCase(
-          c.resolve(TOKEN.EventsUnitOfWork),
-          c.resolve(TOKEN.Clock),
-          c.resolve(TOKEN.IdGenerator),
-        ),
-    )
-    .singleton(
-      TOKEN.CancelReservationUseCase,
-      (c) =>
-        new CancelReservationUseCase(
-          c.resolve(TOKEN.EventsUnitOfWork),
-          c.resolve(TOKEN.Clock),
-          c.resolve(TOKEN.IdGenerator),
-        ),
-    )
+    .singleton(TOKEN.CreateEventUseCase, (c) => {
+      const useCase = new CreateEventUseCase(
+        c.resolve(TOKEN.EventsUnitOfWork),
+        c.resolve(TOKEN.Clock),
+        c.resolve(TOKEN.IdGenerator),
+      )
+      traceCommand('CreateEvent', useCase, (input) => ({
+        'booking.event.category': input.category,
+        'booking.event.capacity': input.capacity,
+      }))
+      return useCase
+    })
+    .singleton(TOKEN.UpdateEventUseCase, (c) => {
+      const useCase = new UpdateEventUseCase(
+        c.resolve(TOKEN.EventsUnitOfWork),
+        c.resolve(TOKEN.Clock),
+        c.resolve(TOKEN.IdGenerator),
+      )
+      traceCommand('UpdateEvent', useCase, (command) => ({
+        'booking.event.id': command.id,
+      }))
+      return useCase
+    })
+    .singleton(TOKEN.ReserveEventUseCase, (c) => {
+      const useCase = new ReserveEventUseCase(
+        c.resolve(TOKEN.EventsUnitOfWork),
+        c.resolve(TOKEN.Clock),
+        c.resolve(TOKEN.IdGenerator),
+      )
+      traceCommand('ReserveEvent', useCase, (command) => ({
+        'booking.event.id': command.eventId,
+        'booking.reservation.quantity': command.quantity,
+      }))
+      return useCase
+    })
+    .singleton(TOKEN.CancelReservationUseCase, (c) => {
+      const useCase = new CancelReservationUseCase(
+        c.resolve(TOKEN.EventsUnitOfWork),
+        c.resolve(TOKEN.Clock),
+        c.resolve(TOKEN.IdGenerator),
+      )
+      traceCommand('CancelReservation', useCase, (command) => ({
+        'booking.reservation.id': command.id,
+      }))
+      return useCase
+    })
     .singleton(
       TOKEN.ListEventsUseCase,
       (c) => new ListEventsUseCase(c.resolve(TOKEN.EventReadRepository)),
