@@ -1,3 +1,4 @@
+import { telemetry } from '#/platform/observability/telemetry.ts'
 import * as v from 'valibot'
 import { getConnInfo } from 'hono/bun'
 import { Duration } from '#/shared-kernel/duration.ts'
@@ -67,7 +68,10 @@ async function shutdown() {
   readModelClient.close()
   await persistence.close()
   await notificationSql.close()
+  await telemetry.shutdown()
   process.exit(0)
 }
 process.once('SIGINT', shutdown)
 process.once('SIGTERM', shutdown)
+
+// Pour le await c'est grace au Readme de opentelemetry et le import c'est parce qu'il faut importe avant d'utiliser logique

@@ -1,3 +1,4 @@
+import { telemetry } from '#/platform/observability/telemetry.ts'
 import { RedisClient, SQL } from 'bun'
 import { createContainer } from '#/composition-root.ts'
 import { TOKEN } from '#/platform/di/tokens.ts'
@@ -29,4 +30,7 @@ try {
 } finally {
   redis.close()
   await sql.close()
+  await telemetry.shutdown()
 }
+
+// ici la meme chose que pour bootstrap.ts j'importe telemetry et je le shutdown pour terminer le script
