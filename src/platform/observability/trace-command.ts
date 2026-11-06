@@ -1,8 +1,10 @@
 import { SpanStatusCode, trace, type Attributes } from '@opentelemetry/api'
 import type { CommandHandler } from '#/shared-kernel/command-handler.ts'
 import { Result } from '#/shared-kernel/result.ts'
+import { SeverityNumber, logs } from '@opentelemetry/api-logs'
 
 const tracer = trace.getTracer('events-api.commands')
+const logger = logs.getLogger('events-api.commands')
 
 export function traceCommand<Command, Output extends Result<unknown, Error>>(
   name: string,
@@ -22,6 +24,14 @@ export function traceCommand<Command, Output extends Result<unknown, Error>>(
             span.setAttributes({
               'booking.command.outcome': 'rejected',
               'booking.rejection.reason': result.error.constructor.name,
+            })
+            logger.emit({
+              severityNumber: SeverityNumber.WARN,
+              severityText: 'WARN',
+              body: `${name} rejected: ${result.error.message}`,
+              attributes: {
+                'booking.rejection.reason': result.error.constructor.name,
+              },
             })
           } else {
             span.setAttribute('booking.command.outcome', 'success')

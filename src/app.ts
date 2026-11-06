@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { SeverityNumber, logs } from '@opentelemetry/api-logs'
 import { httpTelemetry } from '#/platform/observability/http-telemetry.ts'
 import { documentationRoutes } from '#/platform/http/openapi.ts'
 import { HttpStatusCode } from '#/platform/http/http-code.ts'
@@ -34,6 +35,12 @@ export function createApp(
       return error.getResponse()
     }
     console.error(error)
+    logs.getLogger('events-api.http').emit({
+      severityNumber: SeverityNumber.ERROR,
+      severityText: 'ERROR',
+      body: error.message,
+      attributes: { 'exception.type': error.name },
+    })
     return c.json(
       presentError('INTERNAL_ERROR', 'An unexpected error occurred'),
       HttpStatusCode.InternalServerError,
